@@ -1,6 +1,9 @@
+const fs = require('fs');
+const fastcsv = require('fast-csv');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const Product = require('../models/ProductModel.js');
+const _ = require('lodash');
 
 //@desc Get all Products
 //@route GET /api/products
@@ -9,6 +12,7 @@ const getProducts = asyncHandler(async (req, res) => {
   const category = req.query.category;
   const subCategory = req.query.subCategory;
   const minorCategory = req.query.minorCategory;
+  const name = req.query.name;
   let query = {};
   if (category) {
     query = { category };
@@ -17,21 +21,38 @@ const getProducts = asyncHandler(async (req, res) => {
   } else if (minorCategory) {
     query = { minorCategory };
   }
-  const lt = req.query.lt;
+  if (name) {
+    query.name = new RegExp(name, 'i');
+  }
+  let lt = req.query.lt;
   const gt = req.query.gt;
+  if (lt === 50000) {
+    lt = 9999999;
+  }
   if (lt) {
     query.price = { $lte: lt, $gte: gt };
   }
-  console.log('query',query)
+  // console.log('query', query);
+  const categories = await Product.distinct('category', { ...query });
+  const subCategories = await Product.distinct('subCategory', { ...query });
+  const minorCategories = await Product.distinct('minorCategory', { ...query });
   const products = await Product.find({ ...query });
-  res.json(products);
+  res.json({
+    products,
+    categories: { categories, subCategories, minorCategories },
+  });
 });
 
 //@desc Get all Products in a category
 //@route GET /api/products
 //@access Public
-const searchProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({});
+const searchSuggestions = asyncHandler(async (req, res) => {
+  console.log(req.query);
+  const products = await Product.find({
+    name: { $regex: new RegExp(req.query.query, 'i') },
+  })
+    .limit(10)
+    .populate('category');
   res.json(products);
 });
 
@@ -40,7 +61,7 @@ const searchProducts = asyncHandler(async (req, res) => {
 //@access Public
 const getProductDetail = asyncHandler(async (req, res) => {
   const id = req.params.id;
-  const product = await Product.findById(id);
+  const product = await Product.findById(id).populate('hsn').populate('images');
   res.json(product);
 });
 
@@ -72,7 +93,7 @@ const addProduct = asyncHandler(async (req, res) => {
     countInStock: 0,
     numReviews: 0,
     description: 'Sample Description',
-    addedBy: {...addedBy},
+    addedBy: { ...addedBy },
   });
 
   const createdProduct = await product.save();
@@ -85,22 +106,27 @@ const addProduct = asyncHandler(async (req, res) => {
 const editProduct = asyncHandler(async (req, res) => {
   const id = req.params.id;
   const product = await Product.findById(id);
+
   const {
+    category,
+    countInStock,
     name,
-    image,
+    images,
     brand,
     description,
-    category,
     subCategory,
     minorCategory,
-    countInStock,
+    hsn,
     salePrice,
     price,
     show,
+    options,
+    sku,
   } = req.body;
+
   if (product) {
     product.name = name;
-    product.image = image;
+    product.images = images;
     product.description = description;
     product.brand = brand;
     product.category = category;
@@ -110,6 +136,10 @@ const editProduct = asyncHandler(async (req, res) => {
     product.salePrice = salePrice;
     product.countInStock = countInStock;
     product.show = show;
+    product.hsn = hsn;
+    product.sku = sku;
+    product.options = options;
+
     const updatedProduct = await product.save();
     res.status(201).json(updatedProduct);
   } else {
@@ -132,10 +162,45 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 });
 
+//@desc GET if SKU is available
+//@route GET /api/products/sku?=query
+//@access Private//Admin
+const checkSku = asyncHandler(async (req, res) => {
+  const sku = req.query.sku;
+  const skuInUse = await Product.findOne({ sku: sku });
+  if (skuInUse) {
+    throw new Error('SKU not available');
+  } else {
+    res.json({ success: true, message: 'SKU available' });
+  }
+});
+
+//@desc GET if SKU is available
+//@route GET /api/products/download
+//@access Private//Admin
+const downloadProducts = asyncHandler(async (req, res) => {
+  try {
+    const products = await Product.find({});
+    var ws = fs.createWriteStream('./server/public/data.csv');
+    const csvStream = fastcsv.format({ headers: true });
+    csvStream.pipe(ws).on('end', () => res.send('done'));
+    products.forEach(product => {
+      csvStream.write({ name: product.name, price: product.price, sku: product.sku });
+    })
+    csvStream.end();
+    res.send(ws.path)
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 module.exports = {
   addProduct,
   getProducts,
   getProductDetail,
   editProduct,
   deleteProduct,
+  searchSuggestions,
+  checkSku,
+  downloadProducts,
 };

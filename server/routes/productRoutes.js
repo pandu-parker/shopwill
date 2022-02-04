@@ -11,6 +11,14 @@ router
   .get(productController.getProducts)
   .post(authMiddleWare.isAdmin, authMiddleWare.isRetailer, productController.addProduct);
 
+router.route('/checksku').get(productController.checkSku)
+
+router.route('/download').post(productController.downloadProducts)
+
+router
+.route('/search')
+.get(productController.searchSuggestions)
+
 router
   .route('/:id')
   .get(productController.getProductDetail)

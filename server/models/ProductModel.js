@@ -29,10 +29,10 @@ const productSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    image: {
-      type: String,
-      required: true,
-    },
+    images: [{
+      type:  mongoose.Schema.Types.ObjectId,
+      ref: 'Image',
+    }],
     brand: {
       type: String,
       required: false,
@@ -46,6 +46,14 @@ const productSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'SubCategory',
       required: false,
+    },
+    sku : {
+      type : Number,
+      unique: true
+    },
+    hsn: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'HSN',
     },
     minorCategory: {
       type: String,
@@ -85,6 +93,17 @@ const productSchema = mongoose.Schema(
       required: true,
       default: false,
     },
+    options: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        types: [
+          { name: String, price: Number, sku: { type: String, unique: true }, image: String },
+        ],
+      },
+    ],
   },
   {
     timestamps: true,

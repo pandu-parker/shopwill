@@ -10,6 +10,14 @@ router
   .get(authMiddleWare.isAuth, orderController.getOrders)
   .post(authMiddleWare.isAuth, orderController.creatOrder);
 
+  router
+  .route('/:id')
+  .get(authMiddleWare.isAuth, orderController.getOrder)
+  
+router
+.route('/status')
+.post(authMiddleWare.isAdmin, orderController.editOrderStatus)
+
 router.route('/all').get(authMiddleWare.isAdmin, orderController.getAllOrders);
 
 router

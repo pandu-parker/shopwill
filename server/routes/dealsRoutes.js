@@ -10,6 +10,11 @@ router
   .post(authMiddleWare.isAdmin, dealsController.addDeal)
   .get(dealsController.getDeals);
 
+  router
+  .route('/:id')
+  .put(authMiddleWare.isAdmin, dealsController.editDeal)
+  .delete(authMiddleWare.isAdmin, dealsController.deleteDeal);
+
   
 router
 .route('/all')

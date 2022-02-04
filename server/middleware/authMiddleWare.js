@@ -71,7 +71,6 @@ const isAdmin = asyncHandler(async (req, res, next) => {
       if (!admin) {
         next();
       } else {
-        console.log('admin auth');
         req.permission = 'admin';
         req.admin = admin;
         next();

@@ -100,15 +100,40 @@ const getOrders = asyncHandler(async (req, res) => {
   }
 });
 
+
+const getOrder = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    throw new Error('No user found');
+  } else {
+    const order = await Order.findById(id);
+    res.json(order);
+  }
+});
+
 const getAllOrders = asyncHandler(async (req, res) => {
   const orders = await Order.find({}).populate('user', 'email name');
   res.json(orders);
 });
 
+const editOrderStatus = asyncHandler(async (req,res) => {
+  const orderId = req.body.orderId;
+  const order = await Order.findById(orderId);
+  order.status = req.body.orderStatus;
+  if(req.body.orderStatus === 'delivered') {
+    order.isDelivered = true;
+  }
+  await order.save()
+  res.json(order)
+})
+
 module.exports = {
   creatOrder,
   makePayment,
   getOrders,
+  getOrder,
   getAllOrders,
   completePayment,
+  editOrderStatus
 };

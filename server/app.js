@@ -15,6 +15,8 @@ const homepageRoutes = require('./routes/homepageRoutes')
 const uploadRoutes = require('./routes/uploadRoutes')
 const cartRoutes = require('./routes/cartRoutes')
 const orderRoutes = require('./routes/orderRoutes')
+const HSNRoutes = require('./routes/HSNRoutes')
+const ImageRoutes = require('./routes/imageRoutes')
 const errorHandler = require('./middleware/errorMiddleWare')
 
 dotenv.config();
@@ -35,8 +37,12 @@ app.use('/api/homepage', homepageRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/hsn', HSNRoutes)
+app.use('/api/images', ImageRoutes)
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+app.use('/public', express.static(path.join(__dirname, './public')))
+
 
 app.use(errorHandler.notFound)
 app.use(errorHandler.errorHandler)
