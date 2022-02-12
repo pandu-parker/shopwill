@@ -102,6 +102,7 @@ const getOrders = asyncHandler(async (req, res) => {
 
 
 const getOrder = asyncHandler(async (req, res) => {
+  console.log('here get order')
   const id = req.params.id;
   const user = await User.findById(req.user.id);
   if (!user) {
@@ -113,6 +114,7 @@ const getOrder = asyncHandler(async (req, res) => {
 });
 
 const getAllOrders = asyncHandler(async (req, res) => {
+  console.log('here')
   const orders = await Order.find({}).populate('user', 'email name');
   res.json(orders);
 });
