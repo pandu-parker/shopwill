@@ -36,7 +36,7 @@ const getProducts = asyncHandler(async (req, res) => {
   const categories = await Product.distinct('category', { ...query });
   const subCategories = await Product.distinct('subCategory', { ...query });
   const minorCategories = await Product.distinct('minorCategory', { ...query });
-  const products = await Product.find({ ...query });
+  const products = await Product.find({ ...query }).populate('images');
   res.json({
     products,
     categories: { categories, subCategories, minorCategories },
