@@ -49,7 +49,9 @@ const productSchema = mongoose.Schema(
     },
     sku : {
       type : Number,
-      unique: true
+      unique: true,
+      // sparse: true
+      // partialFilterExpression: {rss_id: {$ne:null}}
     },
     hsn: {
       type: mongoose.Schema.Types.ObjectId,
@@ -100,7 +102,7 @@ const productSchema = mongoose.Schema(
           required: true,
         },
         types: [
-          { name: String, price: Number, sku: { type: String, unique: true }, image: String },
+          { name: String, price: Number, sku: { type: String, unique: true, sparse: true }, image: String },
         ],
       },
     ],

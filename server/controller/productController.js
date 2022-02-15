@@ -1,9 +1,12 @@
 const fs = require('fs');
 const fastcsv = require('fast-csv');
+const _ = require('lodash');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
+
 const Product = require('../models/ProductModel.js');
-const _ = require('lodash');
+
+const skuExists = require('../utils/skuExists')
 
 //@desc Get all Products
 //@route GET /api/products
@@ -84,6 +87,14 @@ const addProduct = asyncHandler(async (req, res) => {
   if (!addedBy) {
     throw new Error('Not Authorized');
   }
+  let skuInUse = false;
+  let tempSku = 1234
+  while(!skuInUse) {
+    tempSku = Math.floor(Math.random() * 100000000)
+    if(skuExists(tempSku)) {
+      skuInUse = true
+    }
+  }
   const product = new Product({
     name: 'Sample Name',
     price: 0,
@@ -94,6 +105,7 @@ const addProduct = asyncHandler(async (req, res) => {
     numReviews: 0,
     description: 'Sample Description',
     addedBy: { ...addedBy },
+    sku: tempSku
   });
 
   const createdProduct = await product.save();
