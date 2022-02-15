@@ -6,66 +6,83 @@ const mongoose = require('mongoose');
 
 const Product = require('../models/ProductModel.js');
 
-const skuExists = require('../utils/skuExists')
+const skuExists = require('../utils/skuExists');
 
 //@desc Get all Products
 //@route GET /api/products
 //@access Public
 const getProducts = asyncHandler(async (req, res) => {
-  const category = req.query.category;
-  const subCategory = req.query.subCategory;
-  const minorCategory = req.query.minorCategory;
-  const name = req.query.name;
-  let query = {};
-  if (category) {
-    query = { category };
-  } else if (subCategory) {
-    query = { subCategory };
-  } else if (minorCategory) {
-    query = { minorCategory };
+  try {
+    const category = req.query.category;
+    const subCategory = req.query.subCategory;
+    const minorCategory = req.query.minorCategory;
+    const name = req.query.name;
+    let query = {};
+    if (category) {
+      query = { category };
+    } else if (subCategory) {
+      query = { subCategory };
+    } else if (minorCategory) {
+      query = { minorCategory };
+    }
+    if (name) {
+      query.name = new RegExp(name, 'i');
+    }
+    let lt = req.query.lt;
+    const gt = req.query.gt;
+    if (lt === 50000) {
+      lt = 9999999;
+    }
+    if (lt) {
+      query.price = { $lte: lt, $gte: gt };
+    }
+    // console.log('query', query);
+    const categories = await Product.distinct('category', { ...query });
+    const subCategories = await Product.distinct('subCategory', { ...query });
+    const minorCategories = await Product.distinct('minorCategory', {
+      ...query,
+    });
+    const products = await Product.find({ ...query }).populate('images');
+    res.json({
+      products,
+      categories: { categories, subCategories, minorCategories },
+    });
+  } catch (error) {
+    throw new Error('Something went wrong, try again');
   }
-  if (name) {
-    query.name = new RegExp(name, 'i');
-  }
-  let lt = req.query.lt;
-  const gt = req.query.gt;
-  if (lt === 50000) {
-    lt = 9999999;
-  }
-  if (lt) {
-    query.price = { $lte: lt, $gte: gt };
-  }
-  // console.log('query', query);
-  const categories = await Product.distinct('category', { ...query });
-  const subCategories = await Product.distinct('subCategory', { ...query });
-  const minorCategories = await Product.distinct('minorCategory', { ...query });
-  const products = await Product.find({ ...query }).populate('images');
-  res.json({
-    products,
-    categories: { categories, subCategories, minorCategories },
-  });
 });
 
 //@desc Get all Products in a category
 //@route GET /api/products
 //@access Public
 const searchSuggestions = asyncHandler(async (req, res) => {
-  console.log(req.query);
-  const products = await Product.find({
-    name: { $regex: new RegExp(req.query.query, 'i') },
-  })
-    .limit(10)
-    .populate('category');
-  res.json(products);
+  try {
+    console.log('in search');
+    const products = await Product.find({
+      name: { $regex: new RegExp(req.query.query, 'i') },
+    })
+      .limit(10)
+      .populate('category');
+    res.json(products);
+  } catch (error) {
+    console.log('in search');
+    throw new Error('Something went wrong, try again');
+  }
 });
 
 //@desc Get Product Detail
 //@route GET /api/products
 //@access Public
 const getProductDetail = asyncHandler(async (req, res) => {
-  const id = req.params.id;
-  const product = await Product.findById(id).populate('hsn').populate('images');
-  res.json(product);
+  try {
+    const id = req.params.id;
+    const product = await Product.findById(id)
+      .populate('hsn')
+      .populate('images');
+    res.json(product);
+  } catch (error) {
+    throw new Error('Something went wrong, try again');
+  }
 });
 
 // @desc Add new Product
@@ -88,11 +105,11 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new Error('Not Authorized');
   }
   let skuInUse = false;
-  let tempSku = 1234
-  while(!skuInUse) {
-    tempSku = Math.floor(Math.random() * 100000000)
-    if(skuExists(tempSku)) {
-      skuInUse = true
+  let tempSku = 1234;
+  while (!skuInUse) {
+    tempSku = Math.floor(Math.random() * 100000000);
+    if (skuExists(tempSku)) {
+      skuInUse = true;
     }
   }
   const product = new Product({
@@ -105,7 +122,7 @@ const addProduct = asyncHandler(async (req, res) => {
     numReviews: 0,
     description: 'Sample Description',
     addedBy: { ...addedBy },
-    sku: tempSku
+    sku: tempSku,
   });
 
   const createdProduct = await product.save();
@@ -197,10 +214,14 @@ const downloadProducts = asyncHandler(async (req, res) => {
     const csvStream = fastcsv.format({ headers: true });
     csvStream.pipe(ws).on('end', () => res.send('done'));
     products.forEach(product => {
-      csvStream.write({ name: product.name, price: product.price, sku: product.sku });
-    })
+      csvStream.write({
+        name: product.name,
+        price: product.price,
+        sku: product.sku,
+      });
+    });
     csvStream.end();
-    res.send(ws.path)
+    res.send(ws.path);
   } catch (error) {
     console.log(error);
   }
